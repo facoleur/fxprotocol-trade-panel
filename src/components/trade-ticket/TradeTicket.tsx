@@ -78,10 +78,9 @@ function LiquidationBrakeLabel() {
           </button>
         </TooltipTrigger>
         <TooltipContent className="text-sm border-base-400 bg-base-200 text-base-700">
-          Liquidation Brake is an automatic rebalance trigger that reduces
-          liquidation risk before the position reaches its liquidation point. If
-          it is triggered, f(x) Protocol rebalances the position and charges a
-          2.5% bounty for the brake action.
+          Automatic rebalance trigger before liquidation. If triggered, f(x)
+          Protocol rebalances your position and pays a 2.5% bounty charged on
+          the rebalanced position value.
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
