@@ -95,7 +95,7 @@ export const tradeMockData = {
   leverage: {
     min: 1.2,
     max: 7,
-    step: 0.05,
+    step: 0.1,
     marks: [1.2, 2, 3, 4, 5, 6, 7],
     maxLabel: "Max leverage: 7x",
   },

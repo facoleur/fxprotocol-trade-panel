@@ -26,9 +26,9 @@ export function LongShortTabs({ value, onChange }: LongShortTabsProps) {
             aria-pressed={active}
             onClick={() => onChange(option.value)}
             className={cx(
-              "relative h-12 text-sm font-medium! hover:bg-base-300 border-b border-transparent",
+              "relative h-10 border-b-2 border-transparent text-sm font-medium!",
 
-              active ? option.color : "text-base-500 hover:bg-base-300",
+              active ? option.color : "text-base-500   hover:text-base-700",
               active &&
                 "after:absolute after:inset-x-0 after:bottom-px after:h-0.5  border-b border-current! -mb-1px",
             )}

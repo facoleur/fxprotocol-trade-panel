@@ -18,6 +18,15 @@ interface LeverageSelectorProps {
   error?: string | null;
 }
 
+function sanitizeLeverageInput(value: string) {
+  const sanitizedValue = sanitizeDecimalInput(value);
+  const [wholePart, decimalPart] = sanitizedValue.split(".");
+
+  if (decimalPart === undefined) return wholePart;
+
+  return `${wholePart}.${decimalPart.slice(0, 1)}`;
+}
+
 export function LeverageSelector({
   value,
   inputValue,
@@ -33,8 +42,8 @@ export function LeverageSelector({
   const progress = ((rangeValue - min) / (max - min)) * 100;
 
   return (
-    <div>
-      <div className="mb-5 flex items-center justify-between gap-3">
+    <div className="space-y-0">
+      <div className="flex items-center justify-between gap-3">
         <span className="text-base font-medium text-base-500">Leverage</span>
         <label className="relative block w-20">
           <Input
@@ -42,7 +51,7 @@ export function LeverageSelector({
             inputMode="decimal"
             value={inputValue}
             onChange={(event) =>
-              onInputChange(sanitizeDecimalInput(event.target.value))
+              onInputChange(sanitizeLeverageInput(event.target.value))
             }
             className="h-9 rounded-md border-base-400 bg-base-200 pr-6 text-right text-sm font-semibold text-base-700 shadow-none transition duration-150 ease-out focus-visible:border-primary focus-visible:bg-base-100/40 focus-visible:ring-0"
           />

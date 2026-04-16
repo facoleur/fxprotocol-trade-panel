@@ -32,7 +32,7 @@ export function ActionTabs({ value, onChange }: ActionTabsProps) {
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cx(
-            "relative z-10 h-9 rounded-md text-sm font-medium! transition-colors duration-150 ease-out",
+            "relative z-10 h-9 rounded-md text-sm font-medium! transition-all  ease-out  duration-100 hover:duration-0",
             value === option.value
               ? "text-base-700"
               : "text-base-500 hover:text-base-700",

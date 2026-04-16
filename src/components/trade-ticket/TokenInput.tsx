@@ -7,7 +7,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { ReactNode } from "react";
+import Image from "next/image";
+import { useRef, useState, type PointerEvent, type ReactNode } from "react";
 import type { TokenOption } from "./types";
 import { cx, formatCurrency, sanitizeDecimalInput, toNumber } from "./utils";
 
@@ -29,6 +30,33 @@ interface TokenInputProps {
   className?: string;
   error?: string | null;
   displaySymbol?: string;
+}
+
+function getTokenIconSrc(symbol: string) {
+  const normalizedSymbol = symbol.toLowerCase();
+
+  if (normalizedSymbol.includes("eth")) return "/eth.png";
+  if (normalizedSymbol === "usdc") return "/usdc.png";
+  if (normalizedSymbol === "fxusd") return "/fxusd.png";
+
+  return null;
+}
+
+function TokenIcon({ symbol }: { symbol: string }) {
+  const src = getTokenIconSrc(symbol);
+
+  if (!src) return null;
+
+  return (
+    <Image
+      src={src}
+      alt=""
+      width={20}
+      height={20}
+      aria-hidden="true"
+      className="size-4 shrink-0 rounded-full  object-cover"
+    />
+  );
 }
 
 export function TokenInput({
@@ -55,24 +83,45 @@ export function TokenInput({
   const usdValue = formatCurrency(toNumber(value) * token.usdPrice);
   const amountDisplay = value || placeholder;
   const inlineSymbol = displaySymbol ?? token.symbol;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [tokenSelectorOpen, setTokenSelectorOpen] = useState(false);
+
+  function handleContainerPointerDown(event: PointerEvent<HTMLDivElement>) {
+    const target = event.target;
+
+    if (!(target instanceof HTMLElement)) return;
+    if (target.closest("button, input, [role='combobox']")) return;
+
+    event.preventDefault();
+    inputRef.current?.focus();
+  }
 
   return (
     <div
+      onPointerDown={handleContainerPointerDown}
       className={cx(
-        "group rounded-md border border-base-400 bg-base-200 px-5 py-4 hover:border-base-500/50!",
-        "focus-within:border-primary focus-within:bg-base-100/40",
+        "group rounded-md border border-base-400 bg-base-200 px-5 py-4",
+        !tokenSelectorOpen && "hover:border-base-500/40!",
+        "focus-within:border-primary focus-within:bg-base-100/40 focus-within:hover:border-primary!",
+        tokenSelectorOpen &&
+          "border-primary bg-base-100/40 hover:border-primary!",
         error && "border-short",
         className,
       )}
     >
-      <div className="mb-3 flex min-h-5 items-center justify-between gap-3">
+      <div className="mb-1 flex min-h-5 items-center justify-between gap-3">
         {showLabel ? (
           <label className="text-sm font-medium text-base-500">{label}</label>
         ) : (
           <span />
         )}
 
-        <div className="invisible flex items-center gap-3 text-sm group-focus-within:visible group-hover:visible">
+        <div
+          className={cx(
+            "invisible flex items-center gap-3 text-sm group-focus-within:visible group-hover:visible",
+            tokenSelectorOpen && "visible",
+          )}
+        >
           {showBalance && balanceLabel ? (
             <span className="text-base-500">{balanceLabel}</span>
           ) : null}
@@ -98,6 +147,7 @@ export function TokenInput({
           </div>
 
           <input
+            ref={inputRef}
             inputMode="decimal"
             value={value}
             aria-label={label}
@@ -110,22 +160,35 @@ export function TokenInput({
         </div>
 
         {showTokenSelector ? (
-          <Select value={selectedToken} onValueChange={onTokenChange}>
-            <SelectTrigger className="h-10 min-w-24 border-base-400 bg-base-300 text-sm font-semibold text-base-600 shadow-none hover:border-primary-soft focus-visible:border-primary-soft focus-visible:ring-primary-soft/40">
-              <SelectValue />
+          <Select
+            value={selectedToken}
+            onValueChange={onTokenChange}
+            open={tokenSelectorOpen}
+            onOpenChange={setTokenSelectorOpen}
+          >
+            <SelectTrigger className="h-8! min-w-24 border-none bg-base-300 text-sm font-semibold text-base-600 shadow-none hover:bg-base-400/75 focus-visible:border-primary-soft focus-visible:ring-primary-soft/40">
+              <SelectValue>
+                <span className="inline-flex items-center gap-1.5">
+                  <TokenIcon symbol={token.symbol} />
+                  <span>{token.symbol}</span>
+                </span>
+              </SelectValue>
             </SelectTrigger>
             <SelectContent
-              position="popper"
-              className="border-base-400 bg-base-300 text-base-700 ring-base-400 min-w-24! w-24!"
+              // position="popper"
+              className="border-base-400 bg-base-300 text-base-700 ring-base-400 min-w-32! w-32!"
             >
               {tokens.map((item) => (
                 <SelectItem
                   key={item.symbol}
                   value={item.symbol}
                   textValue={item.symbol}
-                  className="text-base-700 focus:bg-primary-soft focus:text-base-700 text-xs  min-w-22! w-22!"
+                  className="text-base-700 focus:bg-primary-soft focus:text-base-700 text-sm min-w-30! w-30!"
                 >
-                  <span className="font-semibold">{item.symbol}</span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <TokenIcon symbol={item.symbol} />
+                    <span className="font-semibold">{item.symbol}</span>
+                  </span>
                 </SelectItem>
               ))}
             </SelectContent>

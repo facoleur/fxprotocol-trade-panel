@@ -33,7 +33,7 @@ export function OrderTypeDropdown({
           <SelectValue />
         </SelectTrigger>
         <SelectContent
-          position="popper"
+          // position="popper"
           className="border-base-400 bg-base-300 text-base-700 ring-base-400"
         >
           {options.map((option) => (

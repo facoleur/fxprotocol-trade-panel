@@ -57,15 +57,21 @@ function formatLiquidationBrake(
 
   return (
     <>
+      <span className="text-base-500">({move})</span>
       <span className="font-semibold text-base-700">
         {formatCurrency(brake.price)}
       </span>
-      <span className="text-base-500">({move})</span>
     </>
   );
 }
 
-function LiquidationBrakeLabel() {
+function LiquidationBrakeLabel({
+  showTooltip = true,
+}: {
+  showTooltip?: boolean;
+}) {
+  if (!showTooltip) return <span>Liquidation Brake</span>;
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -98,6 +104,7 @@ export function TradeTicket() {
   const [depositTokenSymbol, setDepositTokenSymbol] = useState("ETH");
   const [reduceAmount, setReduceAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("");
+  const [receiveTokenSymbol, setReceiveTokenSymbol] = useState("ETH");
   const [reducePercent, setReducePercent] = useState(0);
   const [limitPrice, setLimitPrice] = useState(
     tradeMockData.defaults.limitPrice,
@@ -122,7 +129,9 @@ export function TradeTicket() {
   const depositAsset =
     depositTokens.find((token) => token.symbol === depositTokenSymbol) ??
     depositTokens[0];
-  const closeReceiveAsset = sideMarket.quoteToken;
+  const closeReceiveAsset =
+    depositTokens.find((token) => token.symbol === receiveTokenSymbol) ??
+    sideMarket.quoteToken;
   const sizeAsset = sideMarket.baseToken;
   const orderPrice =
     orderType === "market"
@@ -156,13 +165,15 @@ export function TradeTicket() {
     closeReceiveAsset.usdPrice > 0
       ? (maxReduceAmount * sizeAsset.usdPrice) / closeReceiveAsset.usdPrice
       : 0;
-  const overAvailableTolerance = 0.0000005;
+  const reduceOverAvailableTolerance = amountDisplayTolerance(maxReduceAmount);
+  const receiveOverAvailableTolerance =
+    amountDisplayTolerance(maxReceiveAmount);
   const reduceInputError =
-    toNumber(reduceAmount) > maxReduceAmount + overAvailableTolerance
+    toNumber(reduceAmount) > maxReduceAmount + reduceOverAvailableTolerance
       ? `Max available is ${formatAmount(maxReduceAmount)} ${sizeAsset.symbol}.`
       : null;
   const receiveInputError =
-    toNumber(receiveAmount) > maxReceiveAmount + overAvailableTolerance
+    toNumber(receiveAmount) > maxReceiveAmount + receiveOverAvailableTolerance
       ? `Max available is ${formatAmount(maxReceiveAmount)} ${closeReceiveAsset.symbol}.`
       : null;
   const closeInputError = reduceInputError ?? receiveInputError;
@@ -193,24 +204,24 @@ export function TradeTicket() {
       },
       {
         id: "liquidation-brake",
-        label: <LiquidationBrakeLabel />,
+        label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
         value: openLiquidationBrakeText,
       },
       {
         label: "Fee",
         value: (
           <>
-            <span className="font-semibold text-base-700">
-              {formatCurrency(fee)}
-            </span>
             <span className="text-base-500">
               ({(tradeMockData.market.feeRate * 100).toFixed(1)}%)
+            </span>
+            <span className="font-semibold text-base-700">
+              {formatCurrency(fee)}
             </span>
           </>
         ),
       },
     ],
-    [fee, openLiquidationBrakeText, orderPrice],
+    [fee, openLiquidationBrakeText, orderPrice, previewOpen],
   );
   const closeInfoItems: InfoItem[] = useMemo(
     () => [
@@ -224,7 +235,7 @@ export function TradeTicket() {
       },
       {
         id: "liquidation-brake",
-        label: <LiquidationBrakeLabel />,
+        label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
         value: closeLiquidationBrakeText,
       },
       {
@@ -251,6 +262,7 @@ export function TradeTicket() {
       closeReceiveAsset.symbol,
       minReceived,
       orderPrice,
+      previewOpen,
       sideMarket,
     ],
   );
@@ -266,6 +278,10 @@ export function TradeTicket() {
     if (!Number.isFinite(value) || value <= 0) return "";
 
     return Number(value.toFixed(value >= 1 ? 4 : 6)).toString();
+  }
+
+  function amountDisplayTolerance(value: number) {
+    return value >= 1 ? 0.00005 : 0.0000005;
   }
 
   function amountForUsd(usdValue: number, usdPrice: number) {
@@ -338,23 +354,25 @@ export function TradeTicket() {
   }
 
   function handleLeverageInputChange(nextLeverageInput: string) {
-    const nextLeverage = toNumber(nextLeverageInput);
+    setLeverageInput(nextLeverageInput);
 
-    if (nextLeverageInput === "") {
-      setLeverageInput("");
+    if (nextLeverageInput === "" || nextLeverageInput === ".") {
       setSize("");
       return;
     }
 
+    const nextLeverage = Number(nextLeverageInput);
+    if (!Number.isFinite(nextLeverage)) return;
+
     const clampedLeverage = clampLeverage(nextLeverage);
 
-    setLeverageInput(formatAmount(clampedLeverage));
     setSize(amountForUsd(depositUsd * clampedLeverage, sizeAsset.usdPrice));
   }
 
   function handleSideChange(nextSide: TradeSide) {
     setSide(nextSide);
     setDepositTokenSymbol(nextSide === "long" ? "ETH" : "fxUSD");
+    setReceiveTokenSymbol(nextSide === "long" ? "ETH" : "fxUSD");
     setSize("");
     setReduceAmount("");
     setReceiveAmount("");
@@ -395,6 +413,20 @@ export function TradeTicket() {
     setReceiveAmount(nextReceiveAmount);
     setReduceAmount(formatAmount(nextReduceAmount));
     setReducePercent(nextPercent);
+  }
+
+  function handleReceiveTokenChange(nextSymbol: string) {
+    const nextReceiveAsset =
+      depositTokens.find((token) => token.symbol === nextSymbol) ??
+      depositTokens[0];
+
+    setReceiveTokenSymbol(nextSymbol);
+    setReceiveAmount(
+      amountForUsd(
+        toNumber(reduceAmount) * sizeAsset.usdPrice,
+        nextReceiveAsset.usdPrice,
+      ),
+    );
   }
 
   const limitPriceInput =
@@ -523,7 +555,7 @@ export function TradeTicket() {
                 onTokenChange={() => undefined}
                 balanceLabel={`Position: ${sideMarket.position.size} ${sizeAsset.symbol}`}
                 showMaxButton={inputOptions.maxButton}
-                showTokenSelector={inputOptions.tokenSelector}
+                showTokenSelector={false}
                 showBalance={inputOptions.balance}
                 showUsdValue={inputOptions.usdValue}
                 onMaxClick={() => syncReduceFromPercent(100)}
@@ -540,9 +572,9 @@ export function TradeTicket() {
                 label="Receive"
                 value={receiveAmount}
                 selectedToken={closeReceiveAsset.symbol}
-                tokens={[closeReceiveAsset]}
+                tokens={depositTokens}
                 onValueChange={handleReceiveAmountChange}
-                onTokenChange={() => undefined}
+                onTokenChange={handleReceiveTokenChange}
                 showMaxButton={false}
                 showTokenSelector={inputOptions.tokenSelector}
                 showBalance={false}
@@ -555,17 +587,6 @@ export function TradeTicket() {
               <InfoList items={closeInfoItems} />
             </>
           )}
-
-          <label className="flex items-center justify-between gap-4 text-base font-medium text-base-500">
-            <span>Create a New Position</span>
-            <input
-              type="checkbox"
-              checked={createNewPosition}
-              onChange={(event) => setCreateNewPosition(event.target.checked)}
-              className="peer sr-only"
-            />
-            <span className="relative h-6 w-12 rounded-full bg-base-400 transition duration-150 ease-out after:absolute after:left-1 after:top-1 after:size-4 after:rounded-full after:bg-base-700 after:transition after:duration-150 after:ease-out peer-checked:bg-primary peer-checked:after:translate-x-6" />
-          </label>
 
           <Button
             size="lg"
