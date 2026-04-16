@@ -64,18 +64,23 @@ export function LeverageSelector({
         style={{ "--leverage-progress": `${progress}%` } as CSSProperties}
       />
 
-      <div className="mt-4 grid grid-cols-7 text-sm font-semibold">
+      <div className="relative mt-4 h-5 text-sm font-semibold">
         {marks.map((mark) => (
           <button
             key={mark}
             type="button"
             onClick={() => onChange(mark)}
             className={cn(
+              "absolute top-0 -translate-x-1/2 rounded-sm px-1 hover:bg-base-300",
+              mark === min && "translate-x-0",
+              mark === max && "-translate-x-full",
               rangeValue >= mark
-                ? "text-center text-base-700 transition duration-150 ease-out first:text-left last:text-right"
-                : "text-center text-base-500 transition duration-150 ease-out first:text-left last:text-right",
-              "hover:bg-base-300 rounded-sm",
+                ? "text-base-700 transition duration-150 ease-out"
+                : "text-base-500 transition duration-150 ease-out",
             )}
+            style={{
+              left: `${((mark - min) / (max - min)) * 100}%`,
+            }}
           >
             {formatLeverage(mark).toUpperCase()}
           </button>

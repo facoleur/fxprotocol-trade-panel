@@ -17,7 +17,7 @@ export function ActionTabs({ value, onChange }: ActionTabsProps) {
   const activeIndex = options.findIndex((option) => option.value === value);
 
   return (
-    <div className="relative grid grid-cols-2 overflow-hidden rounded-lg bg-primary-soft p-0.5">
+    <div className="relative grid grid-cols-2 overflow-hidden rounded-lg bg-primary-soft p-0.5 font-medium">
       <div
         aria-hidden="true"
         className={cx(
@@ -32,7 +32,7 @@ export function ActionTabs({ value, onChange }: ActionTabsProps) {
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cx(
-            "relative z-10 h-9 rounded-md text-sm font-semibold transition-colors duration-150 ease-out",
+            "relative z-10 h-9 rounded-md text-sm font-medium! transition-colors duration-150 ease-out",
             value === option.value
               ? "text-base-700"
               : "text-base-500 hover:text-base-700",

@@ -46,7 +46,9 @@ function calculateLiquidationBrake({
   };
 }
 
-function formatLiquidationBrake(brake: LiquidationBrakeEstimate | null): ReactNode {
+function formatLiquidationBrake(
+  brake: LiquidationBrakeEstimate | null,
+): ReactNode {
   if (!brake) return "-";
 
   const move = `${brake.movePercent >= 0 ? "+" : ""}${brake.movePercent.toFixed(
@@ -320,7 +322,13 @@ export function TradeTicket() {
   }
 
   function handleMaxSizeClick() {
-    setSize(amountForUsd(depositUsd * leverage, sizeAsset.usdPrice));
+    const maxDeposit = depositAsset.balance;
+    const maxLeverage = tradeMockData.leverage.max;
+    const maxDepositUsd = toNumber(maxDeposit) * depositAsset.usdPrice;
+
+    setDeposit(maxDeposit);
+    setLeverageInput(formatAmount(maxLeverage));
+    setSize(amountForUsd(maxDepositUsd * maxLeverage, sizeAsset.usdPrice));
   }
 
   function handleLeverageChange(nextLeverage: number) {
@@ -390,6 +398,30 @@ export function TradeTicket() {
     setReducePercent(nextPercent);
   }
 
+  const limitPriceInput =
+    orderType === "limit" ? (
+      <TokenInput
+        label="Limit Price"
+        value={limitPrice}
+        selectedToken={
+          action === "buy-open" ? depositAsset.symbol : closeReceiveAsset.symbol
+        }
+        tokens={tradeTokens}
+        onValueChange={setLimitPrice}
+        onTokenChange={() => undefined}
+        showMaxButton={false}
+        showTokenSelector={false}
+        showBalance
+        balanceLabel={
+          <span className="inline-flex items-center gap-1.5">
+            <span className="text-base-500/70">Market</span>
+            <span>{formatCurrency(tradeMockData.market.currentPrice)}</span>
+          </span>
+        }
+        showUsdValue={false}
+      />
+    ) : null;
+
   return (
     <>
       <section className="w-full max-w-122 rounded-xl border border-base-400 bg-base-200 p-4 shadow-2xl">
@@ -431,33 +463,6 @@ export function TradeTicket() {
             onChange={setOrderType}
           />
 
-          {orderType === "limit" ? (
-            <TokenInput
-              label="Limit Price"
-              value={limitPrice}
-              selectedToken={
-                action === "buy-open"
-                  ? depositAsset.symbol
-                  : closeReceiveAsset.symbol
-              }
-              tokens={tradeTokens}
-              onValueChange={setLimitPrice}
-              onTokenChange={() => undefined}
-              showMaxButton={false}
-              showTokenSelector={false}
-              showBalance
-              balanceLabel={
-                <span className="inline-flex items-center gap-1.5">
-                  <span className="text-base-500/70">Market</span>
-                  <span>
-                    {formatCurrency(tradeMockData.market.currentPrice)}
-                  </span>
-                </span>
-              }
-              showUsdValue={false}
-            />
-          ) : null}
-
           {action === "buy-open" ? (
             <>
               <div className="space-y-1">
@@ -491,6 +496,8 @@ export function TradeTicket() {
                   error={sizeError}
                   displaySymbol="ETH"
                 />
+
+                {limitPriceInput}
               </div>
               <LeverageSelector
                 value={leverage}
@@ -509,7 +516,7 @@ export function TradeTicket() {
           ) : (
             <>
               <TokenInput
-                label={`Reduce: ${sideMarket.label}`}
+                label="Reduce"
                 value={reduceAmount}
                 selectedToken={sizeAsset.symbol}
                 tokens={[sizeAsset]}
@@ -531,7 +538,7 @@ export function TradeTicket() {
               />
 
               <TokenInput
-                label={`Receive: ${closeReceiveAsset.symbol}`}
+                label="Receive"
                 value={receiveAmount}
                 selectedToken={closeReceiveAsset.symbol}
                 tokens={[closeReceiveAsset]}
@@ -543,6 +550,8 @@ export function TradeTicket() {
                 showUsdValue={inputOptions.usdValue}
                 error={receiveInputError}
               />
+
+              {limitPriceInput}
 
               <InfoList items={closeInfoItems} />
             </>
