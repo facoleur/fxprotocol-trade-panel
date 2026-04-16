@@ -1,0 +1,50 @@
+/*
+  Leverage range styling.
+  - --range-track-height controls line thickness.
+  - --range-thumb-size controls the draggable knob.
+  - --leverage-progress is set from TSX so the filled track follows the value.
+*/
+.range {
+  --range-track-height: 4px;
+  --range-thumb-size: 16px;
+  appearance: none;
+  background:
+    linear-gradient(
+      to right,
+      var(--primary-strong) 0%,
+      var(--primary-strong) var(--leverage-progress),
+      var(--base-400) var(--leverage-progress),
+      var(--base-400) 100%
+    );
+  border-radius: 999px;
+  cursor: pointer;
+  height: var(--range-track-height);
+  width: 100%;
+}
+
+.range:focus {
+  outline: none;
+}
+
+.range:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-strong) 35%, transparent);
+}
+
+.range::-webkit-slider-thumb {
+  appearance: none;
+  background: var(--base-700);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--base-500);
+  height: var(--range-thumb-size);
+  width: var(--range-thumb-size);
+}
+
+.range::-moz-range-thumb {
+  background: var(--base-700);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px var(--base-500);
+  height: var(--range-thumb-size);
+  width: var(--range-thumb-size);
+}
