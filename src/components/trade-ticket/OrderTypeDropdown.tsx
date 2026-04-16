@@ -1,5 +1,12 @@
 "use client";
 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import type { OrderType } from "./types";
 
 interface OrderTypeDropdownProps {
@@ -14,19 +21,32 @@ export function OrderTypeDropdown({
   onChange,
 }: OrderTypeDropdownProps) {
   return (
-    <label className="block">
-      <span className="mb-2 block text-sm font-medium text-base-500">Order type</span>
-      <select
+    <div>
+      <span className="mb-2 block text-sm font-medium text-base-500">
+        Order type
+      </span>
+      <Select
         value={value}
-        onChange={(event) => onChange(event.target.value as OrderType)}
-        className="h-11 w-full rounded-md border border-base-400 bg-base-200 px-3 text-base font-semibold text-base-700 outline-none transition hover:border-primary-soft focus:border-primary-soft"
+        onValueChange={(nextValue) => onChange(nextValue as OrderType)}
       >
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
+        <SelectTrigger className="h-11 w-full border-base-400 bg-base-200 text-base font-semibold text-base-700 shadow-none hover:border-primary-soft focus-visible:border-primary-soft focus-visible:ring-primary-soft/40">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent
+          position="popper"
+          className="border-base-400 bg-base-300 text-base-700 ring-base-400"
+        >
+          {options.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value}
+              className="text-base-700 focus:bg-primary-soft focus:text-base-700 "
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

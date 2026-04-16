@@ -9,13 +9,22 @@ interface ActionTabsProps {
 }
 
 export function ActionTabs({ value, onChange }: ActionTabsProps) {
-  const options: Array<{ value: TradeAction; label: string }> = [
-    { value: "buy-open", label: "Buy / Open" },
-    { value: "sell-close", label: "Sell / Close" },
-  ];
+  const options: Array<{ value: TradeAction; label1: string; label2: string }> =
+    [
+      { value: "buy-open", label1: "Buy", label2: "Open" },
+      { value: "sell-close", label1: "Sell", label2: "Close" },
+    ];
+  const activeIndex = options.findIndex((option) => option.value === value);
 
   return (
-    <div className="grid grid-cols-2 rounded-md bg-primary-soft p-0.5">
+    <div className="relative grid grid-cols-2 overflow-hidden rounded-lg bg-primary-soft p-0.5">
+      <div
+        aria-hidden="true"
+        className={cx(
+          "absolute left-0.5 top-0.5 h-[calc(100%-4px)] w-[calc(50%-2px)] rounded-md bg-primary transition-transform duration-150 ease-out",
+          activeIndex === 1 && "translate-x-full",
+        )}
+      />
       {options.map((option) => (
         <button
           key={option.value}
@@ -23,13 +32,14 @@ export function ActionTabs({ value, onChange }: ActionTabsProps) {
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cx(
-            "h-10 rounded-[5px] text-sm font-semibold transition",
+            "relative z-10 h-9 rounded-md text-sm font-semibold transition-colors duration-150 ease-out",
             value === option.value
-              ? "bg-primary text-base-700"
+              ? "text-base-700"
               : "text-base-500 hover:text-base-700",
           )}
         >
-          {option.label}
+          <span className="mr-1">{option.label1}</span>
+          <span className="opacity-50">{option.label2}</span>
         </button>
       ))}
     </div>

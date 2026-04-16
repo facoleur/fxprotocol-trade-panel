@@ -12,7 +12,8 @@ export interface TokenOption {
 }
 
 export interface InfoItem {
-  label: string;
+  id?: string;
+  label: ReactNode | string;
   value: ReactNode | string | number | null | undefined;
   helper?: string;
   hidden?: boolean;

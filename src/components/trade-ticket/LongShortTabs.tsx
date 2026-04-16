@@ -26,10 +26,11 @@ export function LongShortTabs({ value, onChange }: LongShortTabsProps) {
             aria-pressed={active}
             onClick={() => onChange(option.value)}
             className={cx(
-              "relative h-12 text-sm font-semibold transition hover:text-base-700",
-              active ? option.color : "text-base-500",
+              "relative h-12 text-sm font-medium hover:bg-base-300 border-b border-transparent",
+
+              active ? option.color : "text-base-500 hover:bg-base-300",
               active &&
-                "after:absolute after:inset-x-0 after:bottom-[-1px] after:h-0.5 after:bg-current",
+                "after:absolute after:inset-x-0 after:bottom-px after:h-0.5  border-b border-current! -mb-1px",
             )}
           >
             {option.label}

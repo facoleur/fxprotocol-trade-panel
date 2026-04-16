@@ -22,7 +22,10 @@ export function InfoList({ items }: InfoListProps) {
       {items
         .filter((item) => !item.hidden)
         .map((item) => (
-          <div key={item.label} className="flex items-start justify-between gap-4">
+          <div
+            key={item.id ?? String(item.label)}
+            className="flex items-start justify-between gap-4"
+          >
             <dt className="text-base font-medium text-base-500">
               {item.label}
               {item.helper ? (
