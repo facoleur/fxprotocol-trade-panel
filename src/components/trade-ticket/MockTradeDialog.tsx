@@ -90,15 +90,14 @@ function PreviewAmountBlock({
 
 function FxProtocolRouteIcon() {
   return (
-    <span
-      className="relative inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-base-700"
+    <Image
+      src="/fx.png"
+      width={24}
+      height={24}
+      alt=""
       aria-hidden="true"
-    >
-      <span className="absolute inset-0.5 rounded-full bg-[linear-gradient(135deg,#4f46e5_0%,#4f46e5_38%,#f4f6ff_39%,#f4f6ff_50%,#ff4d78_51%,#ff4d78_100%)]" />
-      <span className="relative text-[11px] font-black leading-none text-base-700">
-        f
-      </span>
-    </span>
+      className="size-5 shrink-0 rounded-full object-contain"
+    />
   );
 }
 

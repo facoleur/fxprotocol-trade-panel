@@ -28,6 +28,8 @@ export function TradeTicket() {
   );
   const [deposit, setDeposit] = useState(tradeMockData.defaults.deposit);
   const [size, setSize] = useState(tradeMockData.defaults.size);
+  const [sizeInputMode, setSizeInputMode] = useState<"token" | "usd">("token");
+  const [sizeUsdInput, setSizeUsdInput] = useState("");
   const [depositTokenSymbol, setDepositTokenSymbol] = useState("ETH");
   const [reduceAmount, setReduceAmount] = useState("");
   const [receiveAmount, setReceiveAmount] = useState("");
@@ -64,6 +66,11 @@ export function TradeTicket() {
       : toNumber(limitPrice);
   const depositUsd = toNumber(deposit) * depositAsset.usdPrice;
   const positionUsd = toNumber(size) * sizeAsset.usdPrice;
+  const sizeInputValue = sizeInputMode === "usd" ? sizeUsdInput : size;
+  const sizeModeSwitchLabel =
+    sizeInputMode === "usd"
+      ? `${size || "0"} ETH`
+      : formatCurrency(positionUsd);
   const fee = positionUsd * tradeMockData.market.feeRate;
   const closeFee =
     toNumber(receiveAmount) *
@@ -78,13 +85,11 @@ export function TradeTicket() {
     positionUsd > maxPositionUsd && depositUsd > 0
       ? `Size exceeds ${tradeMockData.leverage.max}x collateral.`
       : null;
-  const missingCollateralError =
-    positionUsd > 0 && depositUsd <= 0 ? "Enter collateral before size." : null;
   const leverageError =
     leverage > tradeMockData.leverage.max
       ? `Max leverage is ${tradeMockData.leverage.max}x.`
       : maxLeverageError;
-  const sizeError = missingCollateralError ?? maxLeverageError;
+  const sizeError = maxLeverageError;
   const maxReduceAmount = toNumber(sideMarket.position.size);
   const maxReceiveAmount =
     closeReceiveAsset.usdPrice > 0
@@ -193,6 +198,25 @@ export function TradeTicket() {
     return Number(value.toFixed(value >= 1 ? 4 : 6)).toString();
   }
 
+  function formatSteppedLeverage(value: number) {
+    if (!Number.isFinite(value) || value <= 0)
+      return tradeMockData.leverage.min.toFixed(1);
+
+    const steppedValue =
+      Math.round(value / tradeMockData.leverage.step) *
+      tradeMockData.leverage.step;
+
+    return Math.max(tradeMockData.leverage.min, steppedValue).toFixed(1);
+  }
+
+  function leverageInputForPositionUsd(nextPositionUsd: number) {
+    if (!Number.isFinite(nextPositionUsd) || nextPositionUsd <= 0) return "";
+    if (depositUsd <= 0)
+      return formatSteppedLeverage(tradeMockData.leverage.min);
+
+    return formatSteppedLeverage(nextPositionUsd / depositUsd);
+  }
+
   function amountDisplayTolerance(value: number) {
     return value >= 1 ? 0.00005 : 0.0000005;
   }
@@ -218,7 +242,12 @@ export function TradeTicket() {
     nextLeverage = leverage,
   ) {
     const nextDepositUsd = toNumber(nextDeposit) * depositAsset.usdPrice;
-    setSize(amountForUsd(nextDepositUsd * nextLeverage, sizeAsset.usdPrice));
+    const nextPositionUsd = nextDepositUsd * nextLeverage;
+
+    setSize(amountForUsd(nextPositionUsd, sizeAsset.usdPrice));
+    if (sizeInputMode === "usd") {
+      setSizeUsdInput(formatAmount(nextPositionUsd));
+    }
   }
 
   function handleDepositChange(nextDeposit: string) {
@@ -232,6 +261,11 @@ export function TradeTicket() {
       depositTokens[0];
 
     setDepositTokenSymbol(nextSymbol);
+    if (sizeInputMode === "usd") {
+      setSizeUsdInput(
+        formatAmount(toNumber(deposit) * nextDepositAsset.usdPrice * leverage),
+      );
+    }
     setSize(
       amountForUsd(
         toNumber(deposit) * nextDepositAsset.usdPrice * leverage,
@@ -241,29 +275,52 @@ export function TradeTicket() {
   }
 
   function handleSizeChange(nextSize: string) {
+    setSizeInputMode("token");
     setSize(nextSize);
 
     const nextPositionUsd = toNumber(nextSize) * sizeAsset.usdPrice;
-    if (depositUsd > 0) {
-      setLeverageInput(formatAmount(nextPositionUsd / depositUsd));
-    }
+    setLeverageInput(leverageInputForPositionUsd(nextPositionUsd));
+  }
+
+  function handleSizeUsdChange(nextSizeUsd: string) {
+    const nextPositionUsd = toNumber(nextSizeUsd);
+
+    setSizeUsdInput(nextSizeUsd);
+    setSize(amountForUsd(nextPositionUsd, sizeAsset.usdPrice));
+    setLeverageInput(leverageInputForPositionUsd(nextPositionUsd));
+  }
+
+  function switchSizeInputToUsd() {
+    setSizeUsdInput(formatAmount(positionUsd));
+    setSizeInputMode("usd");
+  }
+
+  function switchSizeInputToToken() {
+    setSizeInputMode("token");
   }
 
   function handleMaxSizeClick() {
     const maxDeposit = depositAsset.balance;
     const maxLeverage = tradeMockData.leverage.max;
     const maxDepositUsd = toNumber(maxDeposit) * depositAsset.usdPrice;
+    const nextPositionUsd = maxDepositUsd * maxLeverage;
 
     setDeposit(maxDeposit);
-    setLeverageInput(formatAmount(maxLeverage));
-    setSize(amountForUsd(maxDepositUsd * maxLeverage, sizeAsset.usdPrice));
+    setLeverageInput(formatSteppedLeverage(maxLeverage));
+    setSize(amountForUsd(nextPositionUsd, sizeAsset.usdPrice));
+    if (sizeInputMode === "usd") {
+      setSizeUsdInput(formatAmount(nextPositionUsd));
+    }
   }
 
   function handleLeverageChange(nextLeverage: number) {
     const clampedLeverage = clampLeverage(nextLeverage);
 
-    setLeverageInput(formatAmount(clampedLeverage));
+    setLeverageInput(formatSteppedLeverage(clampedLeverage));
     setSize(amountForUsd(depositUsd * clampedLeverage, sizeAsset.usdPrice));
+    if (sizeInputMode === "usd") {
+      setSizeUsdInput(formatAmount(depositUsd * clampedLeverage));
+    }
   }
 
   function handleLeverageInputChange(nextLeverageInput: string) {
@@ -271,6 +328,9 @@ export function TradeTicket() {
 
     if (nextLeverageInput === "" || nextLeverageInput === ".") {
       setSize("");
+      if (sizeInputMode === "usd") {
+        setSizeUsdInput("");
+      }
       return;
     }
 
@@ -280,6 +340,9 @@ export function TradeTicket() {
     const clampedLeverage = clampLeverage(nextLeverage);
 
     setSize(amountForUsd(depositUsd * clampedLeverage, sizeAsset.usdPrice));
+    if (sizeInputMode === "usd") {
+      setSizeUsdInput(formatAmount(depositUsd * clampedLeverage));
+    }
   }
 
   function handleSideChange(nextSide: TradeSide) {
@@ -287,6 +350,8 @@ export function TradeTicket() {
     setDepositTokenSymbol(nextSide === "long" ? "ETH" : "fxUSD");
     setReceiveTokenSymbol(nextSide === "long" ? "ETH" : "fxUSD");
     setSize("");
+    setSizeInputMode("token");
+    setSizeUsdInput("");
     setReduceAmount("");
     setReceiveAmount("");
     setReducePercent(0);
@@ -427,18 +492,28 @@ export function TradeTicket() {
 
                 <TokenInput
                   label="Size"
-                  value={size}
+                  value={sizeInputValue}
                   selectedToken={sizeAsset.symbol}
                   tokens={[sizeAsset]}
-                  onValueChange={handleSizeChange}
+                  onValueChange={
+                    sizeInputMode === "usd"
+                      ? handleSizeUsdChange
+                      : handleSizeChange
+                  }
                   onTokenChange={() => undefined}
                   showMaxButton={inputOptions.maxButton}
                   showTokenSelector={false}
                   showBalance={false}
                   showUsdValue={inputOptions.usdValue}
+                  usdValueLabel={sizeModeSwitchLabel}
+                  onUsdValueClick={
+                    sizeInputMode === "usd"
+                      ? switchSizeInputToToken
+                      : switchSizeInputToUsd
+                  }
                   onMaxClick={handleMaxSizeClick}
                   error={sizeError}
-                  displaySymbol="ETH"
+                  displaySymbol={sizeInputMode === "usd" ? "USD" : "ETH"}
                 />
 
                 {limitPriceInput}

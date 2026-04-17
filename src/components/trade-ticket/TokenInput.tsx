@@ -26,6 +26,8 @@ interface TokenInputProps {
   showTokenSelector?: boolean;
   showBalance?: boolean;
   showUsdValue?: boolean;
+  usdValueLabel?: ReactNode;
+  onUsdValueClick?: () => void;
   onMaxClick?: () => void;
   className?: string;
   error?: string | null;
@@ -73,6 +75,8 @@ export function TokenInput({
   showTokenSelector = true,
   showBalance = true,
   showUsdValue = true,
+  usdValueLabel,
+  onUsdValueClick,
   onMaxClick,
   className,
   error,
@@ -80,7 +84,8 @@ export function TokenInput({
 }: TokenInputProps) {
   const token =
     tokens.find((item) => item.symbol === selectedToken) ?? tokens[0];
-  const usdValue = formatCurrency(toNumber(value) * token.usdPrice);
+  const usdValue =
+    usdValueLabel ?? formatCurrency(toNumber(value) * token.usdPrice);
   const amountDisplay = value || placeholder;
   const inlineSymbol = displaySymbol ?? token.symbol;
   const inputRef = useRef<HTMLInputElement>(null);
@@ -197,7 +202,19 @@ export function TokenInput({
       </div>
 
       {showUsdValue ? (
-        <div className="mt-2 text-xs font-medium text-base-500">{usdValue}</div>
+        <div className="mt-2 text-xs font-medium text-base-500">
+          {onUsdValueClick ? (
+            <button
+              type="button"
+              onClick={onUsdValueClick}
+              className="-mx-1 rounded px-1 py-0.5 transition duration-150 ease-out hover:bg-base-300 hover:text-base-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-strong"
+            >
+              {usdValue}
+            </button>
+          ) : (
+            usdValue
+          )}
+        </div>
       ) : null}
 
       {error ? (
