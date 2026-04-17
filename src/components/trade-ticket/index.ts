@@ -5,6 +5,7 @@ export { IconButton } from "./IconButton";
 export { InfoList } from "./InfoList";
 export { LeverageSelector } from "./LeverageSelector";
 export { LongShortTabs } from "./LongShortTabs";
+export { MockTradeDialog } from "./MockTradeDialog";
 export { OrderTypeDropdown } from "./OrderTypeDropdown";
 export { PositionReduceSlider } from "./PositionReduceSlider";
 export { TokenInput } from "./TokenInput";

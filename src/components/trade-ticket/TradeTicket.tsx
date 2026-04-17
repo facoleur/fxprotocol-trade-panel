@@ -1,97 +1,24 @@
 "use client";
 
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { useMemo, useState, type ReactNode } from "react";
+import { useState } from "react";
 import { ActionTabs } from "./ActionTabs";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
 import { InfoList } from "./InfoList";
 import { LeverageSelector } from "./LeverageSelector";
+import {
+  calculateLiquidationBrake,
+  formatLiquidationBrake,
+  LiquidationBrakeLabel,
+} from "./LiquidationBrake";
 import { LongShortTabs } from "./LongShortTabs";
+import { MockTradeDialog } from "./MockTradeDialog";
 import { OrderTypeDropdown } from "./OrderTypeDropdown";
 import { PositionReduceSlider } from "./PositionReduceSlider";
 import { TokenInput } from "./TokenInput";
 import { depositTokens, tradeMockData, tradeTokens } from "./mockdata";
 import type { InfoItem, OrderType, TradeAction, TradeSide } from "./types";
 import { formatCurrency, toNumber } from "./utils";
-
-interface LiquidationBrakeEstimate {
-  price: number;
-  movePercent: number;
-}
-
-function calculateLiquidationBrake({
-  leverage,
-  price,
-  side,
-}: {
-  leverage: number;
-  price: number;
-  side: TradeSide;
-}): LiquidationBrakeEstimate | null {
-  if (!Number.isFinite(leverage) || leverage <= 0 || price <= 0) return null;
-
-  const adverseMove =
-    tradeMockData.risk.liquidationBrakeDistanceShare / leverage;
-  const signedMove = side === "long" ? -adverseMove : adverseMove;
-
-  return {
-    price: price * (1 + signedMove),
-    movePercent: signedMove * 100,
-  };
-}
-
-function formatLiquidationBrake(
-  brake: LiquidationBrakeEstimate | null,
-): ReactNode {
-  if (!brake) return "-";
-
-  const move = `${brake.movePercent >= 0 ? "+" : ""}${brake.movePercent.toFixed(
-    2,
-  )}%`;
-
-  return (
-    <>
-      <span className="text-base-500">({move})</span>
-      <span className="font-semibold text-base-700">
-        {formatCurrency(brake.price)}
-      </span>
-    </>
-  );
-}
-
-function LiquidationBrakeLabel({
-  showTooltip = true,
-}: {
-  showTooltip?: boolean;
-}) {
-  if (!showTooltip) return <span>Liquidation Brake</span>;
-
-  return (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="underline decoration-base-500/70 decoration-dotted underline-offset-4"
-          >
-            Liquidation Brake
-          </button>
-        </TooltipTrigger>
-        <TooltipContent className="text-sm border-base-400 bg-base-200 text-base-700">
-          Automatic rebalance trigger before liquidation. If triggered, f(x)
-          Protocol rebalances your position and pays a 2.5% bounty charged on
-          the rebalanced position value.
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-}
 
 export function TradeTicket() {
   const [side, setSide] = useState<TradeSide>("long");
@@ -112,9 +39,7 @@ export function TradeTicket() {
   const [leverageInput, setLeverageInput] = useState(
     String(tradeMockData.defaults.leverage),
   );
-  const [createNewPosition, setCreateNewPosition] = useState(
-    tradeMockData.defaults.createNewPosition,
-  );
+  const createNewPosition = tradeMockData.defaults.createNewPosition;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [inputOptions, setInputOptions] = useState({
@@ -181,91 +106,79 @@ export function TradeTicket() {
     action === "sell-close"
       ? !closeInputError && toNumber(reduceAmount) > 0
       : !sizeError && !leverageError && toNumber(size) > 0;
+  const openLiquidationBrakeEstimate = calculateLiquidationBrake({
+    leverage,
+    price: orderPrice,
+    side,
+  });
+  const closeLiquidationBrakeEstimate = calculateLiquidationBrake({
+    leverage: sideMarket.position.leverage,
+    price: orderPrice,
+    side,
+  });
   const openLiquidationBrakeText = formatLiquidationBrake(
-    calculateLiquidationBrake({
-      leverage,
-      price: orderPrice,
-      side,
-    }),
+    openLiquidationBrakeEstimate,
   );
   const closeLiquidationBrakeText = formatLiquidationBrake(
-    calculateLiquidationBrake({
-      leverage: sideMarket.position.leverage,
-      price: orderPrice,
-      side,
-    }),
+    closeLiquidationBrakeEstimate,
   );
 
-  const infoItems: InfoItem[] = useMemo(
-    () => [
-      {
-        label: "Execution Price",
-        value: orderPrice > 0 ? formatCurrency(orderPrice) : "$0",
-      },
-      {
-        id: "liquidation-brake",
-        label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
-        value: openLiquidationBrakeText,
-      },
-      {
-        label: "Fee",
-        value: (
-          <>
-            <span className="text-base-500">
-              ({(tradeMockData.market.feeRate * 100).toFixed(1)}%)
-            </span>
-            <span className="font-semibold text-base-700">
-              {formatCurrency(fee)}
-            </span>
-          </>
-        ),
-      },
-    ],
-    [fee, openLiquidationBrakeText, orderPrice, previewOpen],
-  );
-  const closeInfoItems: InfoItem[] = useMemo(
-    () => [
-      {
-        label: "Position Leverage",
-        value: `${sideMarket.position.leverage.toFixed(2)}x`,
-      },
-      {
-        label: "Execution Price",
-        value: formatCurrency(orderPrice, { maximumFractionDigits: 1 }),
-      },
-      {
-        id: "liquidation-brake",
-        label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
-        value: closeLiquidationBrakeText,
-      },
-      {
-        label: "Fee",
-        value: (
-          <>
-            <span className="font-semibold text-base-700">
-              {formatCurrency(closeFee)}
-            </span>
-            <span className="text-base-500">
-              ({(tradeMockData.market.closeFeeRate * 100).toFixed(1)}%)
-            </span>
-          </>
-        ),
-      },
-      {
-        label: "Min Received",
-        value: `${formatAmount(minReceived)} ${closeReceiveAsset.symbol}`,
-      },
-    ],
-    [
-      closeFee,
-      closeLiquidationBrakeText,
-      closeReceiveAsset.symbol,
-      minReceived,
-      orderPrice,
-      previewOpen,
-      sideMarket,
-    ],
-  );
+  const infoItems: InfoItem[] = [
+    {
+      label: "Execution Price",
+      value: orderPrice > 0 ? formatCurrency(orderPrice) : "$0",
+    },
+    {
+      id: "liquidation-brake",
+      label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
+      value: openLiquidationBrakeText,
+    },
+    {
+      label: "Fee",
+      value: (
+        <>
+          <span className="text-base-500">
+            ({(tradeMockData.market.feeRate * 100).toFixed(1)}%)
+          </span>
+          <span className="font-semibold text-base-700">
+            {formatCurrency(fee)}
+          </span>
+        </>
+      ),
+    },
+  ];
+  const closeInfoItems: InfoItem[] = [
+    {
+      label: "Position Leverage",
+      value: `${sideMarket.position.leverage.toFixed(2)}x`,
+    },
+    {
+      label: "Execution Price",
+      value: formatCurrency(orderPrice, { maximumFractionDigits: 1 }),
+    },
+    {
+      id: "liquidation-brake",
+      label: <LiquidationBrakeLabel showTooltip={!previewOpen} />,
+      value: closeLiquidationBrakeText,
+    },
+    {
+      label: "Fee",
+      value: (
+        <>
+          <span className="font-semibold text-base-700">
+            {formatCurrency(closeFee)}
+          </span>
+          <span className="text-base-500">
+            ({(tradeMockData.market.closeFeeRate * 100).toFixed(1)}%)
+          </span>
+        </>
+      ),
+    },
+    {
+      label: "Min Received",
+      value: `${formatAmount(minReceived)} ${closeReceiveAsset.symbol}`,
+    },
+  ];
 
   function updateInputOption(option: keyof typeof inputOptions) {
     setInputOptions((current) => ({
@@ -633,51 +546,25 @@ export function TradeTicket() {
         </div>
       </Dialog>
 
-      <Dialog
+      <MockTradeDialog
         open={previewOpen}
-        title="Order preview"
         onClose={() => setPreviewOpen(false)}
-      >
-        <div className="space-y-5">
-          <InfoList
-            items={[
-              { label: "Direction", value: side === "long" ? "Long" : "Short" },
-              {
-                label: "Action",
-                value: action === "buy-open" ? "Buy / Open" : "Sell / Close",
-              },
-              {
-                label: "Order Type",
-                value: orderType === "market" ? "Market" : "Limit",
-              },
-              {
-                label: "Position Size",
-                value: positionUsd > 0 ? formatCurrency(positionUsd) : "$0",
-                hidden: action === "sell-close",
-              },
-              {
-                label: "Reduce Amount",
-                value: reduceAmount
-                  ? `${reduceAmount} ${sizeAsset.symbol}`
-                  : "-",
-                hidden: action === "buy-open",
-              },
-              {
-                label: "Receive",
-                value: receiveAmount
-                  ? `${receiveAmount} ${closeReceiveAsset.symbol}`
-                  : "-",
-                hidden: action === "buy-open",
-              },
-              { label: "Leverage", value: `${leverage.toFixed(2)}x` },
-              ...(action === "buy-open" ? infoItems : closeInfoItems),
-            ]}
-          />
-          <Button className="w-full" onClick={() => setPreviewOpen(false)}>
-            Confirm mock trade
-          </Button>
-        </div>
-      </Dialog>
+        action={action}
+        side={side}
+        orderPrice={orderPrice}
+        leverage={leverage}
+        createNewPosition={createNewPosition}
+        deposit={deposit}
+        depositAsset={depositAsset}
+        size={size}
+        sizeAsset={sizeAsset}
+        reduceAmount={reduceAmount}
+        receiveAmount={receiveAmount}
+        closeReceiveAsset={closeReceiveAsset}
+        currentPositionSize={sideMarket.position.size}
+        currentPositionLeverage={sideMarket.position.leverage}
+        currentLiquidationBrake={sideMarket.position.liquidationBrake}
+      />
     </>
   );
 }

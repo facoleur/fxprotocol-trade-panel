@@ -20,13 +20,13 @@ export const tradeTokens: TokenOption[] = [
     usdPrice: 1,
   },
   {
-    symbol: "Long ETH",
+    symbol: "ETH",
     name: "Long Ethereum",
     balance: "0.1842",
     usdPrice: 2331.2,
   },
   {
-    symbol: "Short ETH",
+    symbol: "ETH",
     name: "Short Ethereum",
     balance: "0.1268",
     usdPrice: 2331.2,
@@ -70,7 +70,7 @@ export const tradeMockData = {
   },
   markets: {
     long: {
-      label: "Long ETH",
+      label: "ETH",
       baseToken: longEthToken,
       quoteToken: ethQuoteToken,
       position: {
@@ -81,7 +81,7 @@ export const tradeMockData = {
       },
     },
     short: {
-      label: "Short ETH",
+      label: "ETH",
       baseToken: shortEthToken,
       quoteToken: fxUsdQuoteToken,
       position: {
